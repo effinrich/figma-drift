@@ -1,6 +1,5 @@
-#!/usr/bin/env node
 // CLI entry point for bidirectional sync tooling.
-// Invoked via: npx tsx src/sync/cli.ts <subcommand>
+// Invoked via: npx @effinrich/figma-drift <subcommand>
 
 import {
   runDriftDetection,
@@ -274,7 +273,7 @@ function error(message: string): void {
 function printUsage(): void {
   console.log(
     `
-Usage: npx tsx src/sync/cli.ts <subcommand> [options]
+Usage: npx @effinrich/figma-drift <subcommand> [options]
 
 Subcommands:
   init                          Generate initial Component Map
