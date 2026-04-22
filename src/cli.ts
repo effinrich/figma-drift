@@ -273,7 +273,7 @@ function error(message: string): void {
 function printUsage(): void {
   console.log(
     `
-Usage: npx @effinrich/forgekit-figma-drift <subcommand> [options]
+Usage: npx @forgekitdev/figma-drift <subcommand> [options]
 
 Subcommands:
   init                          Generate initial Component Map

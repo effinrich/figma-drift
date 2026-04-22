@@ -1,4 +1,4 @@
-# @effinrich/figma-drift
+# @forgekitdev/figma-drift
 
 Bidirectional drift detection and sync between React components and Figma design systems.
 
@@ -7,7 +7,7 @@ Detects when your code and Figma components diverge, syncs changes in either dir
 ## Install
 
 ```bash
-npm install @effinrich/figma-drift
+npm install @forgekitdev/figma-drift
 ```
 
 ## Setup
@@ -82,7 +82,7 @@ import {
   runFullPipeline,
   createFigmaMCPAdapter,
   loadConfig,
-} from "@effinrich/figma-drift";
+} from "@forgekitdev/figma-drift";
 
 // Create adapter with your MCP tool caller
 const adapter = createFigmaMCPAdapter(myMCPCaller, {
