@@ -49,7 +49,7 @@ figma-drift communicates with Figma through the [Figma MCP server](https://githu
 
 ### Optional
 
-- [Storybook](https://storybook.js.org/) >= 8.0 — for auto-generated story files with interaction tests
+- [Storybook](https://storybook.js.org/) (latest version recommended) — for auto-generated story files with interaction tests
 
 ## Install
 
