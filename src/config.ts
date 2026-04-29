@@ -14,6 +14,12 @@ export type FigmaDriftConfig = {
   componentMapPath?: string
   /** Optional: sync log path override */
   syncLogPath?: string
+  /** When true, sync runs automatically without prompting. Default: false (prompt mode) */
+  autoSync?: boolean
+  /** Preferred sync direction when autoSync is true. If not set, requires explicit direction. */
+  preferDirection?: 'code-to-figma' | 'figma-to-code'
+  /** When true, auto-generate stories after every sync. Default: true */
+  autoStories?: boolean
 }
 
 /**
@@ -69,7 +75,10 @@ export function loadConfig(
     return {
       fileKey: resolveFileKey(overrides.fileKey),
       componentMapPath: overrides.componentMapPath,
-      syncLogPath: overrides.syncLogPath
+      syncLogPath: overrides.syncLogPath,
+      autoSync: overrides.autoSync,
+      preferDirection: overrides.preferDirection,
+      autoStories: overrides.autoStories
     }
   }
 
@@ -78,7 +87,10 @@ export function loadConfig(
   if (fileConfig?.fileKey) {
     return {
       ...fileConfig,
-      fileKey: resolveFileKey(fileConfig.fileKey)
+      fileKey: resolveFileKey(fileConfig.fileKey),
+      autoSync: overrides?.autoSync ?? fileConfig.autoSync,
+      preferDirection: overrides?.preferDirection ?? fileConfig.preferDirection,
+      autoStories: overrides?.autoStories ?? fileConfig.autoStories
     }
   }
 
@@ -86,7 +98,10 @@ export function loadConfig(
   const envKey = process.env.FIGMA_DRIFT_FILE_KEY
   if (envKey) {
     return {
-      fileKey: resolveFileKey(envKey)
+      fileKey: resolveFileKey(envKey),
+      autoSync: overrides?.autoSync,
+      preferDirection: overrides?.preferDirection,
+      autoStories: overrides?.autoStories
     }
   }
 
