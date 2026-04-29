@@ -1,5 +1,5 @@
-// CLI entry point for @forgekitdev/figma-drift.
-// Invoked via: npx @forgekitdev/figma-drift <subcommand>
+// CLI entry point for @effinrich/figma-drift.
+// Invoked via: npx @effinrich/figma-drift <subcommand>
 
 import {
   runDriftDetection,
@@ -273,7 +273,7 @@ function error(message: string): void {
 function printUsage(): void {
   console.log(
     `
-Usage: npx @forgekitdev/figma-drift <subcommand> [options]
+Usage: npx @effinrich/figma-drift <subcommand> [options]
 
 Subcommands:
   init                          Generate initial Component Map

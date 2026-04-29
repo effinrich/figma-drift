@@ -1,4 +1,4 @@
-# @forgekitdev/figma-drift
+# @effinrich/figma-drift
 
 Bidirectional drift detection and sync between React components and Figma design systems.
 
@@ -54,7 +54,7 @@ figma-drift communicates with Figma through the [Figma MCP server](https://githu
 ## Install
 
 ```bash
-npm install @forgekitdev/figma-drift
+npm install @effinrich/figma-drift
 ```
 
 ## Configuration
@@ -124,7 +124,7 @@ export FIGMA_DRIFT_FILE_KEY="YOUR_FILE_KEY"
 ### Initialize the Component Map
 
 ```bash
-npx @forgekitdev/figma-drift init
+npx @effinrich/figma-drift init
 ```
 
 This scans the directories in `componentDirs`, matches components to Figma via `search_design_system`, and saves the map to `componentMapPath`.
@@ -133,28 +133,28 @@ This scans the directories in `componentDirs`, matches components to Figma via `
 
 ```bash
 # Initialize component map (scans code, matches to Figma)
-npx @forgekitdev/figma-drift init
+npx @effinrich/figma-drift init
 
 # Detect drift between code and Figma
-npx @forgekitdev/figma-drift drift
-npx @forgekitdev/figma-drift drift --json
+npx @effinrich/figma-drift drift
+npx @effinrich/figma-drift drift --json
 
 # Push code changes to Figma
-npx @forgekitdev/figma-drift push              # all drifted components
-npx @forgekitdev/figma-drift push Button       # specific component
+npx @effinrich/figma-drift push              # all drifted components
+npx @effinrich/figma-drift push Button       # specific component
 
 # Pull Figma changes into code
-npx @forgekitdev/figma-drift pull              # all drifted components
-npx @forgekitdev/figma-drift pull Card         # specific component
+npx @effinrich/figma-drift pull              # all drifted components
+npx @effinrich/figma-drift pull Card         # specific component
 
 # Generate Storybook stories
-npx @forgekitdev/figma-drift stories           # all components
-npx @forgekitdev/figma-drift stories Button    # specific component
+npx @effinrich/figma-drift stories           # all components
+npx @effinrich/figma-drift stories Button    # specific component
 
 # Full pipeline: drift → sync → stories
-npx @forgekitdev/figma-drift all --direction code-to-figma
-npx @forgekitdev/figma-drift all --direction figma-to-code
-npx @forgekitdev/figma-drift all --dry-run     # preview without changes
+npx @effinrich/figma-drift all --direction code-to-figma
+npx @effinrich/figma-drift all --direction figma-to-code
+npx @effinrich/figma-drift all --dry-run     # preview without changes
 ```
 
 ## Programmatic API
@@ -167,8 +167,8 @@ import {
   runFullPipeline,
   createFigmaMCPAdapter,
   formatDriftReport,
-} from "@forgekitdev/figma-drift";
-import type { MCPToolCaller } from "@forgekitdev/figma-drift";
+} from "@effinrich/figma-drift";
+import type { MCPToolCaller } from "@effinrich/figma-drift";
 
 // Create an MCP tool caller (this is the bridge to your MCP client)
 const myMCPCaller: MCPToolCaller = async (toolName, args) => {
