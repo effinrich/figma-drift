@@ -1,6 +1,6 @@
 {
-  "name": "@forgekitdev/figma-drift",
-  "version": "0.2.0",
+  "name": "@effinrich/figma-drift",
+  "version": "0.2.1",
   "description": "Bidirectional drift detection and sync between React components and Figma design systems",
   "type": "module",
   "main": "./dist/index.cjs",
