@@ -57,6 +57,36 @@ figma-drift communicates with Figma through the [Figma MCP server](https://githu
 npm install @effinrich/figma-drift
 ```
 
+## MCP Server
+
+figma-drift ships as an MCP server that any MCP client can use. Add to your `mcp.json`:
+
+```json
+{
+  "mcpServers": {
+    "figma-drift": {
+      "command": "npx",
+      "args": ["@effinrich/figma-drift-mcp"]
+    }
+  }
+}
+```
+
+This exposes 8 tools to your AI agent:
+
+| Tool | Description |
+|------|-------------|
+| `figma_drift_init` | Initialize component map (scan code, match to Figma) |
+| `figma_drift_detect` | Detect drift between code and Figma |
+| `figma_drift_push` | Push code changes to Figma |
+| `figma_drift_pull` | Pull Figma changes into code |
+| `figma_drift_stories` | Generate Storybook stories with interaction tests |
+| `figma_drift_manifest` | Extract component manifest from React source (no Figma needed) |
+| `figma_drift_sync_all` | Full pipeline: drift → sync → stories |
+| `figma_drift_tokens` | Sync design tokens between CSS and Figma variables |
+
+The MCP server requires the Figma MCP server to be configured alongside it for Figma operations. Tools that don't need Figma (manifest extraction, story generation) work standalone.
+
 ## Configuration
 
 Create a `.figma-drift.json` in your project root. Only `fileKey` is required — everything else has sensible defaults:
