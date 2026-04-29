@@ -11,21 +11,27 @@ import {
 import { join, dirname } from 'node:path'
 import type { ComponentMap, ComponentMapEntry } from './types'
 import type { IFigmaMCPAdapter } from './adapters/figma-mcp'
-import { loadConfig } from './config'
+import { loadConfig, CONFIG_DEFAULTS } from './config'
 
-const COMPONENT_MAP_PATH = '.kiro/sync/component-map.json'
+function getMapPath(): string {
+  return loadConfig()?.componentMapPath ?? CONFIG_DEFAULTS.componentMapPath
+}
+
+function getComponentDirs(): string[] {
+  return loadConfig()?.componentDirs ?? [...CONFIG_DEFAULTS.componentDirs]
+}
 
 /**
  * Load the Component Map from disk.
  * Returns null if the file doesn't exist.
  */
 export function loadComponentMap(): ComponentMap | null {
-  if (!existsSync(COMPONENT_MAP_PATH)) {
+  if (!existsSync(getMapPath())) {
     return null
   }
 
   try {
-    const content = readFileSync(COMPONENT_MAP_PATH, 'utf-8')
+    const content = readFileSync(getMapPath(), 'utf-8')
     return JSON.parse(content) as ComponentMap
   } catch {
     return null
@@ -37,16 +43,12 @@ export function loadComponentMap(): ComponentMap | null {
  * Creates the directory structure if it doesn't exist.
  */
 export function saveComponentMap(map: ComponentMap): void {
-  const dir = dirname(COMPONENT_MAP_PATH)
+  const dir = dirname(getMapPath())
   if (!existsSync(dir)) {
     mkdirSync(dir, { recursive: true })
   }
 
-  writeFileSync(
-    COMPONENT_MAP_PATH,
-    JSON.stringify(map, null, 2) + '\n',
-    'utf-8'
-  )
+  writeFileSync(getMapPath(), JSON.stringify(map, null, 2) + '\n', 'utf-8')
 }
 
 /**
@@ -59,7 +61,7 @@ export async function initComponentMap(
   const entries: ComponentMapEntry[] = []
 
   // Scan component directories
-  const componentDirs = ['src/components/ui', 'src/components/dashboard']
+  const componentDirs = getComponentDirs()
 
   for (const dir of componentDirs) {
     if (!existsSync(dir)) continue
@@ -156,7 +158,7 @@ export function findEntryByPath(
  * Get the path to the component map file.
  */
 export function getComponentMapPath(): string {
-  return COMPONENT_MAP_PATH
+  return getMapPath()
 }
 
 // ── Internal helpers ─────────────────────────────────────────────────

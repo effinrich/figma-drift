@@ -1,4 +1,4 @@
-// @effinrich/figma-drift — Public API
+// @forgekitdev/figma-drift — Public API
 
 // Core types
 export type {

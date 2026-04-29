@@ -2,8 +2,11 @@
 
 import { appendFileSync, existsSync, mkdirSync } from 'node:fs'
 import { dirname } from 'node:path'
+import { loadConfig, CONFIG_DEFAULTS } from './config'
 
-const SYNC_LOG_PATH = '.kiro/sync/sync.log'
+function getLogPath(): string {
+  return loadConfig()?.syncLogPath ?? CONFIG_DEFAULTS.syncLogPath
+}
 
 export type LogType = 'SYNC' | 'STORY' | 'DRIFT' | 'TOKEN' | 'INIT'
 
@@ -48,7 +51,7 @@ export function logSync(entry: LogEntry): void {
   const line = parts.join(' ') + '\n'
 
   ensureLogDir()
-  appendFileSync(SYNC_LOG_PATH, line, 'utf-8')
+  appendFileSync(getLogPath(), line, 'utf-8')
 }
 
 /**
@@ -146,13 +149,13 @@ export function logInitResult(
  * Get the path to the sync log file.
  */
 export function getSyncLogPath(): string {
-  return SYNC_LOG_PATH
+  return getLogPath()
 }
 
 // ── Internal helpers ─────────────────────────────────────────────────
 
 function ensureLogDir(): void {
-  const dir = dirname(SYNC_LOG_PATH)
+  const dir = dirname(getLogPath())
   if (!existsSync(dir)) {
     mkdirSync(dir, { recursive: true })
   }

@@ -1,4 +1,4 @@
-// Constants for @effinrich/figma-drift
+// Constants for @forgekitdev/figma-drift
 // Note: FIGMA_FILE_KEY is no longer hardcoded here.
 // Use loadConfig() from ./config.ts to resolve the file key.
 

@@ -10,10 +10,16 @@ import { join } from 'node:path'
 export type FigmaDriftConfig = {
   /** Figma file key (extracted from URL or provided directly) */
   fileKey: string
-  /** Optional: component map path override */
+  /** Path to the component map JSON file. Default: '.kiro/sync/component-map.json' */
   componentMapPath?: string
-  /** Optional: sync log path override */
+  /** Path to the sync log file. Default: '.kiro/sync/sync.log' */
   syncLogPath?: string
+  /** Directories to scan for React components. Default: ['src/components/ui', 'src/components/dashboard'] */
+  componentDirs?: string[]
+  /** Story output directory mapping. Keys are path fragments to match, values are output dirs. */
+  storyDirMap?: Record<string, string>
+  /** Default story output directory when no mapping matches. Default: 'src/stories' */
+  defaultStoryDir?: string
   /** When true, sync runs automatically without prompting. Default: false (prompt mode) */
   autoSync?: boolean
   /** Preferred sync direction when autoSync is true. If not set, requires explicit direction. */
@@ -21,6 +27,20 @@ export type FigmaDriftConfig = {
   /** When true, auto-generate stories after every sync. Default: true */
   autoStories?: boolean
 }
+
+/** Default configuration values */
+export const CONFIG_DEFAULTS = {
+  componentMapPath: '.kiro/sync/component-map.json',
+  syncLogPath: '.kiro/sync/sync.log',
+  componentDirs: ['src/components/ui', 'src/components/dashboard'],
+  storyDirMap: {
+    'components/ui/': 'src/stories/atoms',
+    'components/dashboard/': 'src/stories/molecules'
+  } as Record<string, string>,
+  defaultStoryDir: 'src/stories',
+  autoSync: false,
+  autoStories: true
+} as const
 
 /**
  * Extract a Figma file key from a full Figma URL.
@@ -70,42 +90,75 @@ export function resolveFileKey(input: string): string {
 export function loadConfig(
   overrides?: Partial<FigmaDriftConfig>
 ): FigmaDriftConfig | null {
+  // Priority 2: Config file (load first so we can merge)
+  const fileConfig = loadConfigFile() ?? {}
+
   // Priority 1: Explicit overrides
   if (overrides?.fileKey) {
-    return {
-      fileKey: resolveFileKey(overrides.fileKey),
-      componentMapPath: overrides.componentMapPath,
-      syncLogPath: overrides.syncLogPath,
-      autoSync: overrides.autoSync,
-      preferDirection: overrides.preferDirection,
-      autoStories: overrides.autoStories
-    }
+    return mergeConfig(
+      { fileKey: resolveFileKey(overrides.fileKey) },
+      overrides,
+      fileConfig
+    )
   }
 
   // Priority 2: Config file
-  const fileConfig = loadConfigFile()
   if (fileConfig?.fileKey) {
-    return {
-      ...fileConfig,
-      fileKey: resolveFileKey(fileConfig.fileKey),
-      autoSync: overrides?.autoSync ?? fileConfig.autoSync,
-      preferDirection: overrides?.preferDirection ?? fileConfig.preferDirection,
-      autoStories: overrides?.autoStories ?? fileConfig.autoStories
-    }
+    return mergeConfig(
+      { fileKey: resolveFileKey(fileConfig.fileKey) },
+      overrides ?? {},
+      fileConfig
+    )
   }
 
   // Priority 3: Environment variable
   const envKey = process.env.FIGMA_DRIFT_FILE_KEY
   if (envKey) {
-    return {
-      fileKey: resolveFileKey(envKey),
-      autoSync: overrides?.autoSync,
-      preferDirection: overrides?.preferDirection,
-      autoStories: overrides?.autoStories
-    }
+    return mergeConfig(
+      { fileKey: resolveFileKey(envKey) },
+      overrides ?? {},
+      fileConfig
+    )
   }
 
   return null
+}
+
+/**
+ * Merge config from overrides, file config, and defaults.
+ * Priority: overrides > fileConfig > defaults
+ */
+function mergeConfig(
+  base: { fileKey: string },
+  overrides: Partial<FigmaDriftConfig>,
+  fileConfig: Partial<FigmaDriftConfig>
+): FigmaDriftConfig {
+  return {
+    fileKey: base.fileKey,
+    componentMapPath:
+      overrides.componentMapPath ??
+      fileConfig.componentMapPath ??
+      CONFIG_DEFAULTS.componentMapPath,
+    syncLogPath:
+      overrides.syncLogPath ??
+      fileConfig.syncLogPath ??
+      CONFIG_DEFAULTS.syncLogPath,
+    componentDirs: overrides.componentDirs ??
+      fileConfig.componentDirs ?? [...CONFIG_DEFAULTS.componentDirs],
+    storyDirMap: overrides.storyDirMap ??
+      fileConfig.storyDirMap ?? { ...CONFIG_DEFAULTS.storyDirMap },
+    defaultStoryDir:
+      overrides.defaultStoryDir ??
+      fileConfig.defaultStoryDir ??
+      CONFIG_DEFAULTS.defaultStoryDir,
+    autoSync:
+      overrides.autoSync ?? fileConfig.autoSync ?? CONFIG_DEFAULTS.autoSync,
+    preferDirection: overrides.preferDirection ?? fileConfig.preferDirection,
+    autoStories:
+      overrides.autoStories ??
+      fileConfig.autoStories ??
+      CONFIG_DEFAULTS.autoStories
+  }
 }
 
 /**

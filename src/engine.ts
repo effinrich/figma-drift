@@ -3,6 +3,7 @@
 
 import type { DriftReport, DriftEntry, SyncResult } from './types'
 import type { IFigmaMCPAdapter } from './adapters/figma-mcp'
+import { loadConfig, CONFIG_DEFAULTS } from './config'
 import { extractManifest } from './manifest-extractor'
 import { extractSnapshot } from './snapshot-extractor'
 import { compareSingle, compareAll } from './drift-detector'
@@ -445,13 +446,17 @@ export async function runFullPipeline(
 
 /**
  * Derive the story directory from a component file path.
+ * Uses storyDirMap from config, falling back to defaults.
  */
 function deriveStoryDir(filePath: string): string {
-  if (filePath.includes('components/ui/')) {
-    return 'src/stories/atoms'
+  const config = loadConfig()
+  const storyDirMap = config?.storyDirMap ?? CONFIG_DEFAULTS.storyDirMap
+  const defaultDir = config?.defaultStoryDir ?? CONFIG_DEFAULTS.defaultStoryDir
+
+  for (const [pathFragment, storyDir] of Object.entries(storyDirMap)) {
+    if (filePath.includes(pathFragment)) {
+      return storyDir
+    }
   }
-  if (filePath.includes('components/dashboard/')) {
-    return 'src/stories/molecules'
-  }
-  return 'src/stories'
+  return defaultDir
 }
