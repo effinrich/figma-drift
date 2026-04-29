@@ -1,4 +1,4 @@
-# @effinrich/figma-drift
+# @forgekitdev/figma-drift
 
 Bidirectional drift detection and sync between React components and Figma design systems.
 
@@ -54,14 +54,12 @@ figma-drift communicates with Figma through the [Figma MCP server](https://githu
 ## Install
 
 ```bash
-npm install @effinrich/figma-drift
+npm install @forgekitdev/figma-drift
 ```
 
-## Setup
+## Configuration
 
-### 1. Configure your Figma file key
-
-Create a `.figma-drift.json` in your project root:
+Create a `.figma-drift.json` in your project root. Only `fileKey` is required — everything else has sensible defaults:
 
 ```json
 {
@@ -69,15 +67,40 @@ Create a `.figma-drift.json` in your project root:
 }
 ```
 
-You can also provide a full Figma URL — the file key is extracted automatically:
+### Full Configuration Reference
 
 ```json
 {
-  "fileKey": "https://figma.com/design/YOUR_FILE_KEY/YourFile"
+  "fileKey": "YOUR_FILE_KEY",
+  "componentMapPath": ".kiro/sync/component-map.json",
+  "syncLogPath": ".kiro/sync/sync.log",
+  "componentDirs": ["src/components/ui", "src/components/dashboard"],
+  "storyDirMap": {
+    "components/ui/": "src/stories/atoms",
+    "components/dashboard/": "src/stories/molecules"
+  },
+  "defaultStoryDir": "src/stories",
+  "autoSync": false,
+  "preferDirection": "code-to-figma",
+  "autoStories": true
 }
 ```
 
-**Alternative configuration methods** (resolved in priority order):
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `fileKey` | `string` | — | **Required.** Figma file key or full URL (key is extracted automatically) |
+| `componentMapPath` | `string` | `.kiro/sync/component-map.json` | Path to the component map JSON file |
+| `syncLogPath` | `string` | `.kiro/sync/sync.log` | Path to the sync log file |
+| `componentDirs` | `string[]` | `["src/components/ui", "src/components/dashboard"]` | Directories to scan for React components |
+| `storyDirMap` | `Record<string, string>` | `{"components/ui/": "src/stories/atoms", ...}` | Maps component path fragments to story output directories |
+| `defaultStoryDir` | `string` | `src/stories` | Fallback story directory when no mapping matches |
+| `autoSync` | `boolean` | `false` | When true, sync runs automatically without prompting |
+| `preferDirection` | `"code-to-figma" \| "figma-to-code"` | — | Preferred sync direction when `autoSync` is true |
+| `autoStories` | `boolean` | `true` | Auto-generate stories after every sync |
+
+### Alternative Configuration Methods
+
+Configuration is resolved in priority order:
 
 1. `.figma-drift.json` in project root
 2. `"figmaDrift"` field in `package.json`
@@ -92,45 +115,46 @@ export FIGMA_DRIFT_FILE_KEY="YOUR_FILE_KEY"
 // package.json
 {
   "figmaDrift": {
-    "fileKey": "YOUR_FILE_KEY"
+    "fileKey": "YOUR_FILE_KEY",
+    "componentDirs": ["src/ui", "src/features"]
   }
 }
 ```
 
-### 2. Initialize the component map
+### Initialize the Component Map
 
 ```bash
-npx @effinrich/figma-drift init
+npx @forgekitdev/figma-drift init
 ```
 
-This scans `src/components/ui/` and `src/components/dashboard/` for React components, then matches them to Figma components via `search_design_system`. The resulting map is saved to `.kiro/sync/component-map.json`.
+This scans the directories in `componentDirs`, matches components to Figma via `search_design_system`, and saves the map to `componentMapPath`.
 
 ## CLI Usage
 
 ```bash
 # Initialize component map (scans code, matches to Figma)
-npx @effinrich/figma-drift init
+npx @forgekitdev/figma-drift init
 
 # Detect drift between code and Figma
-npx @effinrich/figma-drift drift
-npx @effinrich/figma-drift drift --json
+npx @forgekitdev/figma-drift drift
+npx @forgekitdev/figma-drift drift --json
 
 # Push code changes to Figma
-npx @effinrich/figma-drift push              # all drifted components
-npx @effinrich/figma-drift push Button       # specific component
+npx @forgekitdev/figma-drift push              # all drifted components
+npx @forgekitdev/figma-drift push Button       # specific component
 
 # Pull Figma changes into code
-npx @effinrich/figma-drift pull              # all drifted components
-npx @effinrich/figma-drift pull Card         # specific component
+npx @forgekitdev/figma-drift pull              # all drifted components
+npx @forgekitdev/figma-drift pull Card         # specific component
 
 # Generate Storybook stories
-npx @effinrich/figma-drift stories           # all components
-npx @effinrich/figma-drift stories Button    # specific component
+npx @forgekitdev/figma-drift stories           # all components
+npx @forgekitdev/figma-drift stories Button    # specific component
 
 # Full pipeline: drift → sync → stories
-npx @effinrich/figma-drift all --direction code-to-figma
-npx @effinrich/figma-drift all --direction figma-to-code
-npx @effinrich/figma-drift all --dry-run     # preview without changes
+npx @forgekitdev/figma-drift all --direction code-to-figma
+npx @forgekitdev/figma-drift all --direction figma-to-code
+npx @forgekitdev/figma-drift all --dry-run     # preview without changes
 ```
 
 ## Programmatic API
@@ -143,8 +167,8 @@ import {
   runFullPipeline,
   createFigmaMCPAdapter,
   formatDriftReport,
-} from "@effinrich/figma-drift";
-import type { MCPToolCaller } from "@effinrich/figma-drift";
+} from "@forgekitdev/figma-drift";
+import type { MCPToolCaller } from "@forgekitdev/figma-drift";
 
 // Create an MCP tool caller (this is the bridge to your MCP client)
 const myMCPCaller: MCPToolCaller = async (toolName, args) => {
@@ -237,9 +261,29 @@ figma-drift also syncs design tokens between CSS custom properties and Figma var
 | `search_design_system` | Match code components to Figma components |
 | `use_figma` | Write changes to Figma canvas via Plugin API |
 
+## Sync Behavior
+
+### Prompt Mode (default)
+
+By default (`autoSync: false`), figma-drift shows the drift report and waits for you to choose a direction per component. This is the safe default — opacity differences like `destructive/10` vs solid `destructive` are judgment calls that benefit from human review.
+
+### Auto Mode
+
+Set `autoSync: true` with a `preferDirection` to sync automatically:
+
+```json
+{
+  "fileKey": "YOUR_FILE_KEY",
+  "autoSync": true,
+  "preferDirection": "code-to-figma"
+}
+```
+
+This is useful for teams where code is the source of truth and Figma should always match.
+
 ## Component Map
 
-The component map (`.kiro/sync/component-map.json`) links each React component file to its Figma counterpart:
+The component map links each React component file to its Figma counterpart:
 
 ```json
 {
@@ -260,7 +304,7 @@ The component map (`.kiro/sync/component-map.json`) links each React component f
 
 ## Sync Logging
 
-All operations are logged to `.kiro/sync/sync.log`:
+All operations are logged:
 
 ```
 [2025-01-15T10:30:00.000Z] SYNC component=Button direction=code-to-figma result=success
