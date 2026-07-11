@@ -91,6 +91,71 @@ function unquote(value: string): string {
   return value.replace(/^["'`]|["'`]$/g, '')
 }
 
+/** Extract the prop name from `props.variant`, `p.variant`, or `variant`. */
+function propNameFromOperand(node: Node): string | undefined {
+  if (Node.isPropertyAccessExpression(node)) {
+    return node.getName()
+  }
+  if (Node.isIdentifier(node)) {
+    return node.getText()
+  }
+  return undefined
+}
+
+function stringLiteralValue(node: Node): string | undefined {
+  if (Node.isStringLiteral(node)) {
+    return node.getLiteralValue()
+  }
+  if (Node.isNoSubstitutionTemplateLiteral(node)) {
+    return node.getLiteralText()
+  }
+  return undefined
+}
+
+/**
+ * Scan every prop-comparison binary expression under the given container nodes
+ * and collect `{ propName: Set<option> }`. Recognises `props.variant === 'x'`
+ * (and the reversed `'x' === props.variant`) using `===`/`==`/`!==`/`!=`.
+ * Shared by the styled-components and Emotion adapters.
+ */
+function collectPropConditionalVariants(
+  containers: Node[]
+): Record<string, string[]> {
+  const variants: Record<string, Set<string>> = {}
+
+  for (const container of containers) {
+    for (const binary of container.getDescendantsOfKind(
+      SyntaxKind.BinaryExpression
+    )) {
+      const op = binary.getOperatorToken().getText()
+      if (op !== '===' && op !== '==' && op !== '!==' && op !== '!=') {
+        continue
+      }
+      const left = binary.getLeft()
+      const right = binary.getRight()
+
+      const propName = propNameFromOperand(left)
+      const literal = stringLiteralValue(right)
+      if (propName && literal !== undefined) {
+        ;(variants[propName] ??= new Set()).add(literal)
+        continue
+      }
+      // Reversed order: 'primary' === props.variant
+      const propNameR = propNameFromOperand(right)
+      const literalR = stringLiteralValue(left)
+      if (propNameR && literalR !== undefined) {
+        ;(variants[propNameR] ??= new Set()).add(literalR)
+      }
+    }
+  }
+
+  const result: Record<string, string[]> = {}
+  for (const [name, options] of Object.entries(variants)) {
+    result[name] = Array.from(options)
+  }
+  return result
+}
+
 /** Find a call expression whose callee text exactly equals `name`. */
 function findCallByName(
   sourceFile: SourceFile,
@@ -163,43 +228,10 @@ export class StyledComponentsPropsExtractor implements VariantExtractor {
   }
 
   extract(sourceFile: SourceFile): VariantExtractionResult {
-    const variants: Record<string, Set<string>> = {}
-
-    for (const template of this.getStyledTemplates(sourceFile)) {
-      for (const arrow of template.getDescendantsOfKind(
-        SyntaxKind.ArrowFunction
-      )) {
-        for (const binary of arrow.getDescendantsOfKind(
-          SyntaxKind.BinaryExpression
-        )) {
-          const op = binary.getOperatorToken().getText()
-          if (op !== '===' && op !== '==' && op !== '!==' && op !== '!=') {
-            continue
-          }
-          const left = binary.getLeft()
-          const right = binary.getRight()
-
-          const propName = this.propNameFromOperand(left)
-          const literal = this.stringLiteralValue(right)
-          if (propName && literal !== undefined) {
-            ;(variants[propName] ??= new Set()).add(literal)
-            continue
-          }
-          // Also handle the reversed order: 'primary' === props.variant
-          const propNameR = this.propNameFromOperand(right)
-          const literalR = this.stringLiteralValue(left)
-          if (propNameR && literalR !== undefined) {
-            ;(variants[propNameR] ??= new Set()).add(literalR)
-          }
-        }
-      }
-    }
-
-    const result: Record<string, string[]> = {}
-    for (const [name, options] of Object.entries(variants)) {
-      result[name] = Array.from(options)
-    }
-    return { variants: result, defaultVariants: {} }
+    const variants = collectPropConditionalVariants(
+      this.getStyledTemplates(sourceFile)
+    )
+    return { variants, defaultVariants: {} }
   }
 
   /** Templates tagged with styled.* or styled(...). */
@@ -211,26 +243,82 @@ export class StyledComponentsPropsExtractor implements VariantExtractor {
         return tag.startsWith('styled.') || tag.startsWith('styled(')
       })
   }
+}
 
-  /** Extract the prop name from `props.variant`, `p.variant`, or `variant`. */
-  private propNameFromOperand(node: Node): string | undefined {
-    if (Node.isPropertyAccessExpression(node)) {
-      return node.getName()
-    }
-    if (Node.isIdentifier(node)) {
-      return node.getText()
-    }
-    return undefined
+/**
+ * Emotion (best-effort): recognises CSS-in-JS variant patterns from
+ * `@emotion/styled` and `@emotion/react`.
+ *
+ *   - `@emotion/styled`: `styled.div` / `styled(Comp)` tagged templates with
+ *     prop-driven conditional interpolation — identical shape to
+ *     styled-components, e.g.
+ *       styled.button`${props => props.variant === 'primary' ? a : b}`
+ *   - `@emotion/react`: the `css` tagged template and `css()` object-styles
+ *     call, e.g.
+ *       css`${props => (props.variant === 'primary' ? a : b)}`
+ *       css({ color: props.variant === 'primary' ? a : b })
+ *
+ * Prop names become variant groups; the string literals they are compared
+ * against become the options. No defaultVariants are inferable.
+ *
+ * Note on the object-styles form (`css({ ... })`): variants are only recovered
+ * when a prop is compared against a *string literal* (e.g.
+ * `props.variant === 'primary'`). Object styles that switch on a lookup table
+ * (`variantStyles[props.variant]`) or non-literal conditions carry no literal
+ * option values in the source, so nothing reliable can be extracted from them;
+ * those cases yield no variants rather than guesses.
+ */
+export class EmotionExtractor implements VariantExtractor {
+  readonly name = 'emotion'
+
+  detect(sourceFile: SourceFile): boolean {
+    return this.importsEmotion(sourceFile) && this.getContainers(sourceFile).length > 0
   }
 
-  private stringLiteralValue(node: Node): string | undefined {
-    if (Node.isStringLiteral(node)) {
-      return node.getLiteralValue()
+  extract(sourceFile: SourceFile): VariantExtractionResult {
+    const variants = collectPropConditionalVariants(
+      this.getContainers(sourceFile)
+    )
+    return { variants, defaultVariants: {} }
+  }
+
+  /** True when the file imports from `@emotion/styled` or `@emotion/react`. */
+  private importsEmotion(sourceFile: SourceFile): boolean {
+    return sourceFile.getImportDeclarations().some(decl => {
+      const spec = decl.getModuleSpecifierValue()
+      return spec === '@emotion/styled' || spec === '@emotion/react'
+    })
+  }
+
+  /**
+   * Nodes that may hold prop-conditional interpolation: `styled.*`/`styled(...)`
+   * and `css` tagged templates, plus `css(...)` object-styles calls.
+   */
+  private getContainers(sourceFile: SourceFile): Node[] {
+    const containers: Node[] = []
+
+    for (const template of sourceFile.getDescendantsOfKind(
+      SyntaxKind.TaggedTemplateExpression
+    )) {
+      const tag = template.getTag().getText()
+      if (
+        tag.startsWith('styled.') ||
+        tag.startsWith('styled(') ||
+        tag === 'css'
+      ) {
+        containers.push(template)
+      }
     }
-    if (Node.isNoSubstitutionTemplateLiteral(node)) {
-      return node.getLiteralText()
+
+    for (const call of sourceFile.getDescendantsOfKind(
+      SyntaxKind.CallExpression
+    )) {
+      if (call.getExpression().getText() === 'css') {
+        containers.push(call)
+      }
     }
-    return undefined
+
+    return containers
   }
 }
 
@@ -293,6 +381,7 @@ export class CssModulesExtractor implements VariantExtractor {
 export const DEFAULT_VARIANT_EXTRACTORS: VariantExtractor[] = [
   new CvaVariantExtractor(),
   new TailwindVariantsExtractor(),
+  new EmotionExtractor(),
   new StyledComponentsPropsExtractor(),
   new CssModulesExtractor()
 ]

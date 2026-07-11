@@ -6,7 +6,8 @@ import {
   CvaVariantExtractor,
   TailwindVariantsExtractor,
   StyledComponentsPropsExtractor,
-  CssModulesExtractor
+  CssModulesExtractor,
+  EmotionExtractor
 } from '../variant-extractors'
 import { extractManifest } from '../manifest-extractor'
 
@@ -74,6 +75,35 @@ describe('variant-extractors', () => {
     })
   })
 
+  describe('EmotionExtractor', () => {
+    it('detects @emotion/styled templates and extracts prop-based variants', () => {
+      const sf = sourceFor('EmotionButton.tsx')
+      const extractor = new EmotionExtractor()
+      expect(extractor.detect(sf)).toBe(true)
+      const { variants } = extractor.extract(sf)
+      expect(variants.variant).toEqual(
+        expect.arrayContaining(['primary', 'secondary'])
+      )
+      expect(variants.size).toEqual(expect.arrayContaining(['lg', 'sm']))
+    })
+
+    it('detects @emotion/react css`` and css() forms', () => {
+      const sf = sourceFor('EmotionCssButton.tsx')
+      const extractor = new EmotionExtractor()
+      expect(extractor.detect(sf)).toBe(true)
+      const { variants } = extractor.extract(sf)
+      // tagged-template form
+      expect(variants.variant).toEqual(expect.arrayContaining(['primary']))
+      // object-styles form
+      expect(variants.tone).toEqual(expect.arrayContaining(['danger']))
+    })
+
+    it('does not detect a styled-components file lacking an @emotion import', () => {
+      const sf = sourceFor('StyledButton.tsx')
+      expect(new EmotionExtractor().detect(sf)).toBe(false)
+    })
+  })
+
   describe('extractVariants auto-detection', () => {
     it('picks cva for shadcn components', () => {
       const sf = sourceFor('button.tsx')
@@ -95,6 +125,20 @@ describe('variant-extractors', () => {
       expect(variants.variant).toEqual(
         expect.arrayContaining(['primary', 'secondary'])
       )
+    })
+
+    it('auto-detects emotion for @emotion/styled components', () => {
+      const sf = sourceFor('EmotionButton.tsx')
+      const { variants } = extractVariants(sf)
+      expect(variants.variant).toEqual(
+        expect.arrayContaining(['primary', 'secondary'])
+      )
+    })
+
+    it('honors an explicit emotion override', () => {
+      const sf = sourceFor('EmotionCssButton.tsx')
+      const { variants } = extractVariants(sf, { override: 'emotion' })
+      expect(variants.tone).toEqual(expect.arrayContaining(['danger']))
     })
 
     it('returns empty variants when nothing matches', () => {
@@ -120,6 +164,14 @@ describe('variant-extractors', () => {
 
     it('extracts styled-components variants via the manifest extractor', () => {
       const manifest = extractManifest(resolve('StyledButton.tsx'))
+      expect(manifest.variants.variant).toEqual(
+        expect.arrayContaining(['primary', 'secondary'])
+      )
+    })
+
+    it('extracts emotion variants via the manifest extractor', () => {
+      const manifest = extractManifest(resolve('EmotionButton.tsx'))
+      expect(manifest.componentName).toBe('EmotionButton')
       expect(manifest.variants.variant).toEqual(
         expect.arrayContaining(['primary', 'secondary'])
       )

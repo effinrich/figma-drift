@@ -48,6 +48,7 @@ export {
   DEFAULT_VARIANT_EXTRACTORS,
   CvaVariantExtractor,
   TailwindVariantsExtractor,
+  EmotionExtractor,
   StyledComponentsPropsExtractor,
   CssModulesExtractor
 } from './variant-extractors'

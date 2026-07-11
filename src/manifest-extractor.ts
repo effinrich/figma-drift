@@ -12,8 +12,9 @@ import { extractTokenReferencesFromClasses } from './token-sources'
 export type ExtractManifestOptions = {
   /**
    * Force a specific variant extractor by name (e.g. 'cva',
-   * 'tailwind-variants', 'styled-components', 'css-modules'). When omitted,
-   * extractors are auto-detected in order (cva first for backward compat).
+   * 'tailwind-variants', 'emotion', 'styled-components', 'css-modules'). When
+   * omitted, extractors are auto-detected in order (cva first for backward
+   * compat).
    */
   variantExtractor?: string
 }
@@ -23,8 +24,8 @@ export type ExtractManifestOptions = {
  *
  * Variant extraction is delegated to a pluggable adapter (see
  * ./variant-extractors). cva() is tried first, then tailwind-variants,
- * styled-components, and CSS Modules — so non-shadcn stacks are supported
- * without changing the ComponentManifest shape.
+ * Emotion, styled-components, and CSS Modules — so non-shadcn stacks are
+ * supported without changing the ComponentManifest shape.
  */
 export function extractManifest(
   filePath: string,

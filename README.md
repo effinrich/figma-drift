@@ -260,7 +260,7 @@ const pipelineResult = await runFullPipeline(adapter, {
 
 ### Pipeline Steps
 
-1. **Manifest Extraction** — Parses React component source via ts-morph to extract variants (via a pluggable adapter: cva, tailwind-variants, styled-components, or CSS Modules), TypeScript props, color token references, spacing classes, and radius classes
+1. **Manifest Extraction** — Parses React component source via ts-morph to extract variants (via a pluggable adapter: cva, tailwind-variants, Emotion, styled-components, or CSS Modules), TypeScript props, color token references, spacing classes, and radius classes
 2. **Figma Snapshot** — Fetches component structure from Figma via `get_design_context`, extracts variant properties, color bindings (token-bound or hardcoded), auto-layout spacing, and corner radius
 3. **Drift Detection** — Compares manifests vs snapshots, produces a categorized report:
    - `color` — token mismatch or hardcoded vs token-bound
@@ -285,6 +285,7 @@ compatibility, then the others). Override with the `variantExtractor` option on
 |-----------|-----------|
 | `cva` | `cva(base, { variants, defaultVariants })` (class-variance-authority) |
 | `tailwind-variants` | `tv({ variants, defaultVariants })` |
+| `emotion` | Emotion CSS-in-JS: `@emotion/styled` templates and `@emotion/react` `css\`\``/`css({ … })`, e.g. `${p => p.variant === 'x' ? … : …}` |
 | `styled-components` | prop-conditional interpolation, e.g. `${p => p.variant === 'x' ? … : …}` |
 | `css-modules` | `styles.*` keys imported from a `*.module.css/scss` file |
 
@@ -404,7 +405,7 @@ If you're using [Kiro](https://kiro.dev), figma-drift provides hooks for automat
 - **No image support** in `use_figma` yet — images use placeholder rectangles
 - **No custom fonts** in Figma write operations — Inter is used as fallback
 - **Code Connect** requires Organization or Enterprise Figma plan — figma-drift uses component descriptions as metadata on Pro plans
-- **Non-cva stacks are best-effort** — cva and tailwind-variants are extracted precisely; styled-components and CSS Modules variant detection is heuristic (see [Framework-Agnostic Adapters](#framework-agnostic-adapters))
+- **Non-cva stacks are best-effort** — cva and tailwind-variants are extracted precisely; Emotion, styled-components, and CSS Modules variant detection is heuristic (see [Framework-Agnostic Adapters](#framework-agnostic-adapters))
 
 ## License
 
