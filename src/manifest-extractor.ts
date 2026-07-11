@@ -4,9 +4,9 @@
 import { Project, SyntaxKind, Node } from 'ts-morph'
 import type { SourceFile } from 'ts-morph'
 import type { ComponentManifest, PropDefinition } from './types'
-import { TOKEN_PATTERN } from './constants'
 import { extractVariants } from './variant-extractors'
 import { tailwindToPx } from './value-mapping'
+import { extractTokenReferencesFromClasses } from './token-sources'
 
 /** Options controlling manifest extraction. */
 export type ExtractManifestOptions = {
@@ -43,7 +43,7 @@ export function extractManifest(
   })
   const props = extractProps(sourceFile)
   const allClassStrings = collectClassStrings(sourceFile)
-  const tokenReferences = extractTokenReferences(allClassStrings)
+  const tokenReferences = extractTokenReferencesFromClasses(allClassStrings)
   const spacingClasses = extractSpacingClasses(allClassStrings)
   const radiusClasses = extractRadiusClasses(allClassStrings)
   const subComponents = extractSubComponents(sourceFile, componentName)
@@ -289,54 +289,6 @@ function collectClassStrings(sourceFile: SourceFile): string[] {
   }
 
   return strings
-}
-
-/**
- * Extract design token references from class strings using TOKEN_PATTERN.
- * Returns deduplicated token names.
- */
-function extractTokenReferences(classStrings: string[]): string[] {
-  const tokens = new Set<string>()
-  const fullText = classStrings.join(' ')
-
-  // Reset regex state
-  const pattern = new RegExp(TOKEN_PATTERN.source, TOKEN_PATTERN.flags)
-  let match: RegExpExecArray | null
-
-  while ((match = pattern.exec(fullText)) !== null) {
-    const tokenName = match[1]
-    // Filter out non-token values (pure numbers, common non-token utilities)
-    if (!isLikelyToken(tokenName)) continue
-    tokens.add(tokenName)
-  }
-
-  return Array.from(tokens).sort()
-}
-
-/**
- * Determine if a captured group from TOKEN_PATTERN is likely a design token
- * rather than a Tailwind utility value like "sm", "clip", "3", etc.
- */
-function isLikelyToken(name: string): boolean {
-  // Filter out pure numbers or number/number patterns (e.g., "3", "ring/50")
-  if (/^\d/.test(name)) return false
-  // Filter out common Tailwind non-token values
-  const nonTokens = new Set([
-    'clip',
-    'padding',
-    'none',
-    'transparent',
-    'current',
-    'inherit',
-    'auto',
-    'hidden',
-    'visible',
-    'fixed',
-    'absolute',
-    'relative'
-  ])
-  if (nonTokens.has(name)) return false
-  return true
 }
 
 /**

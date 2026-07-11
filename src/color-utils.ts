@@ -1,19 +1,37 @@
 import { parse, formatHex } from 'culori'
 
 /**
- * Parse an OKLCH CSS string (e.g. "oklch(0.205 0 0)" or "oklch(0.205 0 0 / 0.5)")
+ * Parse any CSS color string — OKLCH, HSL/HSLA, RGB/RGBA, hex, or named —
  * and return a 6-digit hex string (without alpha).
  *
- * Returns '#000000' for invalid/unparseable strings.
+ * Returns '#000000' for invalid/unparseable strings. culori handles the
+ * format detection, so this works for non-shadcn stacks that don't use OKLCH.
  */
-export function parseOKLCH(oklchString: string): string {
-  const color = parse(oklchString)
+export function parseColor(colorString: string): string {
+  const color = parse(colorString)
   if (!color) {
     return '#000000'
   }
   // formatHex converts any culori color to a 6-digit hex string
-  const hex = formatHex(color)
-  return hex
+  return formatHex(color)
+}
+
+/**
+ * Whether a string is parseable as a CSS color in any supported format.
+ * Used by token sources to filter color values out of arbitrary objects.
+ */
+export function isColorValue(value: string): boolean {
+  return parse(value.trim()) !== undefined
+}
+
+/**
+ * Parse an OKLCH CSS string and return a 6-digit hex string.
+ *
+ * Retained for backward compatibility; delegates to {@link parseColor},
+ * which accepts OKLCH and every other CSS color format.
+ */
+export function parseOKLCH(oklchString: string): string {
+  return parseColor(oklchString)
 }
 
 /**

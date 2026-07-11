@@ -72,11 +72,21 @@ export { syncFigmaToCode } from './figma-to-code'
 export {
   extractCSSTokens,
   extractCSSTokensFromString,
+  extractThemeObjectTokens,
   extractFigmaTokens,
   compareTokens,
   syncTokenToFigma,
   syncTokenToCSS
 } from './token-syncer'
+
+// Color Token Sources
+export {
+  extractTokenReferencesFromClasses,
+  flattenThemeColors,
+  TailwindClassTokenSource,
+  ThemeObjectTokenSource
+} from './token-sources'
+export type { ColorTokenSource, FlattenThemeOptions } from './token-sources'
 
 // Story Generator
 export { generateStory, mergeStories } from './story-generator'
@@ -106,7 +116,13 @@ export {
 export type { LogType, LogEntry } from './sync-logger'
 
 // Color Utilities
-export { parseOKLCH, figmaRGBToHex, colorsMatch } from './color-utils'
+export {
+  parseColor,
+  parseOKLCH,
+  isColorValue,
+  figmaRGBToHex,
+  colorsMatch
+} from './color-utils'
 
 // Value Mapping
 export {

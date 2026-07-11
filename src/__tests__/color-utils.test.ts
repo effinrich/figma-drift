@@ -1,7 +1,57 @@
 import { describe, it, expect } from 'vitest'
-import { parseOKLCH, figmaRGBToHex, colorsMatch } from '../color-utils'
+import {
+  parseColor,
+  parseOKLCH,
+  isColorValue,
+  figmaRGBToHex,
+  colorsMatch
+} from '../color-utils'
 
 describe('color-utils', () => {
+  describe('parseColor (generalized formats)', () => {
+    it('parses hex strings', () => {
+      expect(parseColor('#ff0000').toLowerCase()).toBe('#ff0000')
+      expect(parseColor('#fff').toLowerCase()).toBe('#ffffff')
+    })
+
+    it('parses rgb() and rgba()', () => {
+      expect(parseColor('rgb(255, 0, 0)').toLowerCase()).toBe('#ff0000')
+      expect(parseColor('rgba(0, 0, 255, 0.5)').toLowerCase()).toBe('#0000ff')
+    })
+
+    it('parses hsl() and hsla()', () => {
+      // hsl(0,100%,50%) is pure red
+      expect(parseColor('hsl(0, 100%, 50%)').toLowerCase()).toBe('#ff0000')
+      // hsl(120,100%,50%) is pure green
+      expect(parseColor('hsl(120, 100%, 50%)').toLowerCase()).toBe('#00ff00')
+    })
+
+    it('parses OKLCH (same as legacy parseOKLCH)', () => {
+      expect(parseColor('oklch(0 0 0)').toLowerCase()).toBe('#000000')
+      expect(parseColor('oklch(1 0 0)').toLowerCase()).toBe('#ffffff')
+    })
+
+    it('returns #000000 for unparseable strings', () => {
+      expect(parseColor('not-a-color')).toBe('#000000')
+    })
+  })
+
+  describe('isColorValue', () => {
+    it('accepts supported color formats', () => {
+      expect(isColorValue('#abcdef')).toBe(true)
+      expect(isColorValue('rgb(1,2,3)')).toBe(true)
+      expect(isColorValue('hsl(200, 50%, 40%)')).toBe(true)
+      expect(isColorValue('oklch(0.5 0 0)')).toBe(true)
+      expect(isColorValue('red')).toBe(true)
+    })
+
+    it('rejects non-colors', () => {
+      expect(isColorValue('0.625rem')).toBe(false)
+      expect(isColorValue('calc(100% - 8px)')).toBe(false)
+      expect(isColorValue('')).toBe(false)
+    })
+  })
+
   describe('parseOKLCH', () => {
     it('parses a black OKLCH value', () => {
       // oklch(0 0 0) is black
