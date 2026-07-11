@@ -109,7 +109,21 @@ export type { LogType, LogEntry } from './sync-logger'
 export { parseOKLCH, figmaRGBToHex, colorsMatch } from './color-utils'
 
 // Value Mapping
-export { tailwindToPx, pxToTailwind } from './value-mapping'
+export {
+  tailwindToPx,
+  pxToTailwind,
+  parseCssLength,
+  parseArbitraryUtility,
+  resolveTailwindTheme,
+  buildScaleMaps,
+  resolveSpacingRadiusMaps
+} from './value-mapping'
+export type {
+  LengthResolveOptions,
+  TailwindToPxOptions,
+  ThemeScale,
+  ResolvedTheme
+} from './value-mapping'
 
 // Configuration
 export { loadConfig, resolveFileKey, extractFileKeyFromURL } from './config'

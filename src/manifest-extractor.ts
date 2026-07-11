@@ -4,8 +4,9 @@
 import { Project, SyntaxKind, Node } from 'ts-morph'
 import type { SourceFile } from 'ts-morph'
 import type { ComponentManifest, PropDefinition } from './types'
-import { TOKEN_PATTERN, SPACING_MAP, RADIUS_MAP } from './constants'
+import { TOKEN_PATTERN } from './constants'
 import { extractVariants } from './variant-extractors'
+import { tailwindToPx } from './value-mapping'
 
 /** Options controlling manifest extraction. */
 export type ExtractManifestOptions = {
@@ -339,17 +340,19 @@ function isLikelyToken(name: string): boolean {
 }
 
 /**
- * Extract spacing classes that match keys in SPACING_MAP.
+ * Extract spacing classes that resolve to a pixel value — either via the
+ * spacing map or Tailwind arbitrary-value syntax (e.g. `p-[13px]`).
  */
 function extractSpacingClasses(classStrings: string[]): string[] {
   const classes = new Set<string>()
-  const spacingPattern = /(?:^|\s)((?:gap|p|px|py)-[\w.]+)/g
+  const spacingPattern =
+    /(?:^|\s)((?:gap-x|gap-y|gap|px|py|pt|pr|pb|pl|p|mx|my|m)-(?:\[[^\]]+\]|[\w.]+))/g
   const fullText = classStrings.join(' ')
 
   let match: RegExpExecArray | null
   while ((match = spacingPattern.exec(fullText)) !== null) {
     const cls = match[1]
-    if (cls in SPACING_MAP) {
+    if (tailwindToPx(cls) !== undefined) {
       classes.add(cls)
     }
   }
@@ -358,17 +361,18 @@ function extractSpacingClasses(classStrings: string[]): string[] {
 }
 
 /**
- * Extract radius classes that match keys in RADIUS_MAP.
+ * Extract radius classes that resolve to a pixel value — either via the
+ * radius map or Tailwind arbitrary-value syntax (e.g. `rounded-[6px]`).
  */
 function extractRadiusClasses(classStrings: string[]): string[] {
   const classes = new Set<string>()
-  const radiusPattern = /(?:^|\s)(rounded-[\w]+)/g
+  const radiusPattern = /(?:^|\s)(rounded(?:-(?:\[[^\]]+\]|[\w]+))?)/g
   const fullText = classStrings.join(' ')
 
   let match: RegExpExecArray | null
   while ((match = radiusPattern.exec(fullText)) !== null) {
     const cls = match[1]
-    if (cls in RADIUS_MAP) {
+    if (tailwindToPx(cls) !== undefined) {
       classes.add(cls)
     }
   }
