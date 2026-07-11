@@ -151,9 +151,9 @@ describe('value-mapping', () => {
         })
       ).toBe(8)
       // token map key without leading --
-      expect(
-        parseCssLength('var(--gap)', { tokenMap: { gap: '1rem' } })
-      ).toBe(16)
+      expect(parseCssLength('var(--gap)', { tokenMap: { gap: '1rem' } })).toBe(
+        16
+      )
     })
 
     it('falls back to the var() default when the token is unknown', () => {

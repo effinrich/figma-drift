@@ -8,8 +8,7 @@ type Props = {
 
 // css tagged-template form with prop-driven conditional interpolation.
 const baseStyles = css`
-  color: ${(props: Props) =>
-    props.variant === 'primary' ? 'white' : 'black'};
+  color: ${(props: Props) => (props.variant === 'primary' ? 'white' : 'black')};
 `
 
 // css() object-styles form with an inline prop comparison.

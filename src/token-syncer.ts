@@ -4,7 +4,12 @@
 import { readFileSync, writeFileSync } from 'node:fs'
 import type { DesignToken, TokenDrift } from './types'
 import type { IFigmaMCPAdapter } from './adapters/figma-mcp'
-import { parseColor, figmaRGBToHex, colorsMatch, isColorValue } from './color-utils'
+import {
+  parseColor,
+  figmaRGBToHex,
+  colorsMatch,
+  isColorValue
+} from './color-utils'
 import { flattenThemeColors, type FlattenThemeOptions } from './token-sources'
 
 /**

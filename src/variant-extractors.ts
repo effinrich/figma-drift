@@ -272,7 +272,10 @@ export class EmotionExtractor implements VariantExtractor {
   readonly name = 'emotion'
 
   detect(sourceFile: SourceFile): boolean {
-    return this.importsEmotion(sourceFile) && this.getContainers(sourceFile).length > 0
+    return (
+      this.importsEmotion(sourceFile) &&
+      this.getContainers(sourceFile).length > 0
+    )
   }
 
   extract(sourceFile: SourceFile): VariantExtractionResult {

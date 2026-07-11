@@ -126,7 +126,10 @@ export function tailwindToPx(
 export function pxToTailwind(
   value: number,
   type: 'spacing' | 'radius',
-  options?: { spacingMap?: Record<string, number>; radiusMap?: Record<string, number> }
+  options?: {
+    spacingMap?: Record<string, number>
+    radiusMap?: Record<string, number>
+  }
 ): string | undefined {
   const map =
     type === 'spacing'
@@ -226,7 +229,10 @@ export function buildScaleMaps(
  * config is present.
  */
 export function resolveSpacingRadiusMaps(
-  options?: LengthResolveOptions & { projectDir?: string; mergeDefaults?: boolean }
+  options?: LengthResolveOptions & {
+    projectDir?: string
+    mergeDefaults?: boolean
+  }
 ): { spacingMap: Record<string, number>; radiusMap: Record<string, number> } {
   if (options?.projectDir) {
     const theme = resolveTailwindTheme(options.projectDir)

@@ -407,6 +407,20 @@ If you're using [Kiro](https://kiro.dev), figma-drift provides hooks for automat
 - **Code Connect** requires Organization or Enterprise Figma plan — figma-drift uses component descriptions as metadata on Pro plans
 - **Non-cva stacks are best-effort** — cva and tailwind-variants are extracted precisely; Emotion, styled-components, and CSS Modules variant detection is heuristic (see [Framework-Agnostic Adapters](#framework-agnostic-adapters))
 
+## Development
+
+This project uses the [Oxc](https://oxc.rs) toolchain (Rust-based) for linting
+and formatting instead of ESLint/Prettier:
+
+| Script | Command | Purpose |
+|--------|---------|---------|
+| `npm run lint` | `oxlint` | Lint with [oxlint](https://oxc.rs/docs/guide/usage/linter) (config: `.oxlintrc.json`) |
+| `npm run format` | `oxfmt` | Format with [oxfmt](https://oxc.rs/docs/guide/usage/formatter) (config: `.oxfmtrc.json`) |
+| `npm run format:check` | `oxfmt --check` | Verify formatting without writing |
+| `npm run typecheck` | `tsc --noEmit` | Type-check only (no emit) |
+| `npm run test` | `vitest --run` | Run the test suite |
+| `npm run build` | `tsup` | Build the library |
+
 ## License
 
 MIT

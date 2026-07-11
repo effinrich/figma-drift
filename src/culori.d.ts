@@ -13,7 +13,10 @@ declare module 'culori' {
   }
 
   /** Any culori color object. Carries a `mode` discriminator plus channels. */
-  export type Color = { mode: string; alpha?: number } & Record<string, number | string>
+  export type Color = { mode: string; alpha?: number } & Record<
+    string,
+    number | string
+  >
 
   /** Parse any CSS color string (hex, rgb, hsl, oklch, …). */
   export function parse(color: string): Color | undefined
