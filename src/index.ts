@@ -40,6 +40,21 @@ export type { SyncDirection, PipelineOptions, PipelineResult } from './engine'
 
 // Manifest Extractor
 export { extractManifest } from './manifest-extractor'
+export type { ExtractManifestOptions } from './manifest-extractor'
+
+// Variant Extraction Adapters
+export {
+  extractVariants,
+  DEFAULT_VARIANT_EXTRACTORS,
+  CvaVariantExtractor,
+  TailwindVariantsExtractor,
+  StyledComponentsPropsExtractor,
+  CssModulesExtractor
+} from './variant-extractors'
+export type {
+  VariantExtractor,
+  VariantExtractionResult
+} from './variant-extractors'
 
 // Snapshot Extractor
 export { extractSnapshot } from './snapshot-extractor'

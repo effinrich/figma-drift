@@ -2,24 +2,33 @@
 // to produce a ComponentManifest describing variants, props, tokens, etc.
 
 import { Project, SyntaxKind, Node } from 'ts-morph'
-import type {
-  CallExpression,
-  ObjectLiteralExpression,
-  SourceFile
-} from 'ts-morph'
+import type { SourceFile } from 'ts-morph'
 import type { ComponentManifest, PropDefinition } from './types'
 import { TOKEN_PATTERN, SPACING_MAP, RADIUS_MAP } from './constants'
+import { extractVariants } from './variant-extractors'
+
+/** Options controlling manifest extraction. */
+export type ExtractManifestOptions = {
+  /**
+   * Force a specific variant extractor by name (e.g. 'cva',
+   * 'tailwind-variants', 'styled-components', 'css-modules'). When omitted,
+   * extractors are auto-detected in order (cva first for backward compat).
+   */
+  variantExtractor?: string
+}
 
 /**
  * Extract a ComponentManifest from a React component source file.
  *
- * Handles four patterns:
- * 1. Components with cva() variants (button.tsx, badge.tsx)
- * 2. Components with multiple sub-component exports (card.tsx)
- * 3. Components with custom prop interfaces (StatCard.tsx)
- * 4. Components with no cva() and simple props
+ * Variant extraction is delegated to a pluggable adapter (see
+ * ./variant-extractors). cva() is tried first, then tailwind-variants,
+ * styled-components, and CSS Modules — so non-shadcn stacks are supported
+ * without changing the ComponentManifest shape.
  */
-export function extractManifest(filePath: string): ComponentManifest {
+export function extractManifest(
+  filePath: string,
+  options?: ExtractManifestOptions
+): ComponentManifest {
   const project = new Project({
     tsConfigFilePath: 'tsconfig.json',
     skipAddingFilesFromTsConfig: true
@@ -28,7 +37,9 @@ export function extractManifest(filePath: string): ComponentManifest {
   const sourceFile = project.addSourceFileAtPath(filePath)
   const componentName = deriveComponentName(sourceFile)
 
-  const { variants, defaultVariants } = extractCvaData(sourceFile)
+  const { variants, defaultVariants } = extractVariants(sourceFile, {
+    override: options?.variantExtractor
+  })
   const props = extractProps(sourceFile)
   const allClassStrings = collectClassStrings(sourceFile)
   const tokenReferences = extractTokenReferences(allClassStrings)
@@ -75,102 +86,6 @@ function deriveComponentName(sourceFile: SourceFile): string {
   // Fallback: derive from filename
   const baseName = sourceFile.getBaseNameWithoutExtension()
   return baseName.charAt(0).toUpperCase() + baseName.slice(1)
-}
-
-/**
- * Find cva() call expressions and extract variants + defaultVariants.
- */
-function extractCvaData(sourceFile: SourceFile): {
-  variants: Record<string, string[]>
-  defaultVariants: Record<string, string>
-} {
-  const variants: Record<string, string[]> = {}
-  const defaultVariants: Record<string, string> = {}
-
-  const cvaCall = findCvaCall(sourceFile)
-  if (!cvaCall) {
-    return { variants, defaultVariants }
-  }
-
-  const args = cvaCall.getArguments()
-  // cva(baseClasses, config) — config is the second argument
-  if (args.length < 2) {
-    return { variants, defaultVariants }
-  }
-
-  const configArg = args[1]
-  if (!Node.isObjectLiteralExpression(configArg)) {
-    return { variants, defaultVariants }
-  }
-
-  // Extract variants
-  const variantsProp = configArg.getProperty('variants')
-  if (variantsProp && Node.isPropertyAssignment(variantsProp)) {
-    const variantsObj = variantsProp.getInitializer()
-    if (variantsObj && Node.isObjectLiteralExpression(variantsObj)) {
-      extractVariantKeys(variantsObj, variants)
-    }
-  }
-
-  // Extract defaultVariants
-  const defaultVariantsProp = configArg.getProperty('defaultVariants')
-  if (defaultVariantsProp && Node.isPropertyAssignment(defaultVariantsProp)) {
-    const defaultObj = defaultVariantsProp.getInitializer()
-    if (defaultObj && Node.isObjectLiteralExpression(defaultObj)) {
-      for (const prop of defaultObj.getProperties()) {
-        if (Node.isPropertyAssignment(prop)) {
-          const key = prop.getName()
-          const init = prop.getInitializer()
-          if (init) {
-            // Remove quotes from string literals
-            const value = init.getText().replace(/^["']|["']$/g, '')
-            defaultVariants[key] = value
-          }
-        }
-      }
-    }
-  }
-
-  return { variants, defaultVariants }
-}
-
-/**
- * Find the cva() call expression in the source file.
- */
-function findCvaCall(sourceFile: SourceFile): CallExpression | undefined {
-  const callExpressions = sourceFile.getDescendantsOfKind(
-    SyntaxKind.CallExpression
-  )
-  return callExpressions.find(call => {
-    const expr = call.getExpression()
-    return expr.getText() === 'cva'
-  })
-}
-
-/**
- * Extract variant names and their option keys from a variants object literal.
- */
-function extractVariantKeys(
-  variantsObj: ObjectLiteralExpression,
-  variants: Record<string, string[]>
-): void {
-  for (const prop of variantsObj.getProperties()) {
-    if (Node.isPropertyAssignment(prop)) {
-      const variantName = prop.getName()
-      const optionsObj = prop.getInitializer()
-      if (optionsObj && Node.isObjectLiteralExpression(optionsObj)) {
-        const optionKeys: string[] = []
-        for (const optionProp of optionsObj.getProperties()) {
-          if (Node.isPropertyAssignment(optionProp)) {
-            const key = optionProp.getName()
-            // Remove quotes from computed property names like "icon-xs"
-            optionKeys.push(key.replace(/^["']|["']$/g, ''))
-          }
-        }
-        variants[variantName] = optionKeys
-      }
-    }
-  }
 }
 
 /**

@@ -1,0 +1,19 @@
+.root {
+  display: inline-flex;
+  align-items: center;
+}
+
+.primary {
+  background: var(--primary);
+  color: var(--primary-foreground);
+}
+
+.secondary {
+  background: var(--secondary);
+  color: var(--secondary-foreground);
+}
+
+.disabled {
+  opacity: 0.5;
+  pointer-events: none;
+}
