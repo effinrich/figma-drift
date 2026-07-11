@@ -260,7 +260,7 @@ const pipelineResult = await runFullPipeline(adapter, {
 
 ### Pipeline Steps
 
-1. **Manifest Extraction** — Parses React component source via ts-morph to extract cva variants, TypeScript props, Tailwind token references, spacing classes, and radius classes
+1. **Manifest Extraction** — Parses React component source via ts-morph to extract variants (via a pluggable adapter: cva, tailwind-variants, styled-components, or CSS Modules), TypeScript props, color token references, spacing classes, and radius classes
 2. **Figma Snapshot** — Fetches component structure from Figma via `get_design_context`, extracts variant properties, color bindings (token-bound or hardcoded), auto-layout spacing, and corner radius
 3. **Drift Detection** — Compares manifests vs snapshots, produces a categorized report:
    - `color` — token mismatch or hardcoded vs token-bound
@@ -271,13 +271,60 @@ const pipelineResult = await runFullPipeline(adapter, {
 4. **Sync** — Code→Figma generates chunked `use_figma` Plugin API scripts (respecting the 20KB output limit). Figma→Code modifies the component AST via ts-morph.
 5. **Story Generation** — Produces Storybook stories with `play` functions using `expect`, `within`, `userEvent` from `storybook/test`
 
+### Framework-Agnostic Adapters
+
+figma-drift started as a shadcn/ui-focused tool (cva + Tailwind + OKLCH). The
+extraction layer is now pluggable so non-shadcn stacks work too. Defaults are
+unchanged, so existing shadcn/cva/Tailwind/OKLCH projects behave exactly as before.
+
+**Variant extraction** — auto-detected per file (`cva` tried first for backward
+compatibility, then the others). Override with the `variantExtractor` option on
+`extractManifest`:
+
+| Extractor | Recognizes |
+|-----------|-----------|
+| `cva` | `cva(base, { variants, defaultVariants })` (class-variance-authority) |
+| `tailwind-variants` | `tv({ variants, defaultVariants })` |
+| `styled-components` | prop-conditional interpolation, e.g. `${p => p.variant === 'x' ? … : …}` |
+| `css-modules` | `styles.*` keys imported from a `*.module.css/scss` file |
+
+```ts
+import { extractManifest, extractVariants } from '@effinrich/figma-drift'
+
+extractManifest('Button.tsx')                                  // auto-detect
+extractManifest('Button.tsx', { variantExtractor: 'css-modules' }) // force
+```
+
+**Spacing / radius** — beyond the built-in Tailwind maps, `tailwindToPx` now
+parses arbitrary values (`p-[13px]`, `gap-[1.5rem]`, `rounded-[6px]`), resolves
+a project `tailwind.config.{js,cjs,json}` spacing/borderRadius scale (merged over
+the defaults), and accepts raw CSS lengths / `var(--token)` for CSS-in-JS and
+CSS Modules stacks.
+
+```ts
+import { resolveSpacingRadiusMaps, tailwindToPx } from '@effinrich/figma-drift'
+
+const { spacingMap, radiusMap } = resolveSpacingRadiusMaps({ projectDir: process.cwd() })
+tailwindToPx('p-13', { spacingMap, radiusMap })   // custom scale from tailwind.config
+tailwindToPx('gap-[1.5rem]')                       // arbitrary value → 24
+tailwindToPx('var(--md)', { tokenMap: { '--md': '8px' } }) // raw CSS token → 8
+```
+
+**Color tokens** — parsing accepts OKLCH, HSL/HSLA, RGB/RGBA, hex, and named
+colors (via [culori](https://culorijs.org/)). Tokens can be sourced from Tailwind
+color classes or from a JS/TS/JSON theme object (a `colors` map or an MUI-style
+`theme.palette`) via `extractThemeObjectTokens` / `flattenThemeColors`.
+
 ### Design Token Sync
 
 figma-drift also syncs design tokens between CSS custom properties and Figma variables:
 
-- Parses `:root` and `.dark` blocks from your CSS for OKLCH token values
+- Parses `:root` and `.dark` blocks from your CSS for token values in any
+  supported color format (OKLCH, HSL, RGB/RGBA, hex)
+- Also supports theme objects (`extractThemeObjectTokens`) for styled-system /
+  theme-ui / MUI palettes
 - Fetches Figma variable definitions via `get_variable_defs`
-- Normalizes both to hex for comparison (using [culori](https://culorijs.org/) for OKLCH→sRGB conversion)
+- Normalizes both to hex for comparison (using [culori](https://culorijs.org/))
 - Syncs in either direction: update Figma variables from CSS, or update CSS from Figma
 
 ### Figma MCP Tools Used
@@ -357,7 +404,7 @@ If you're using [Kiro](https://kiro.dev), figma-drift provides hooks for automat
 - **No image support** in `use_figma` yet — images use placeholder rectangles
 - **No custom fonts** in Figma write operations — Inter is used as fallback
 - **Code Connect** requires Organization or Enterprise Figma plan — figma-drift uses component descriptions as metadata on Pro plans
-- **cva-based components** — the manifest extractor is optimized for class-variance-authority patterns (shadcn/ui, Radix UI)
+- **Non-cva stacks are best-effort** — cva and tailwind-variants are extracted precisely; styled-components and CSS Modules variant detection is heuristic (see [Framework-Agnostic Adapters](#framework-agnostic-adapters))
 
 ## License
 
