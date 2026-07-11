@@ -49,10 +49,14 @@ export function generateStory(
   // ArgTypes from variants
   if (Object.keys(manifest.variants).length > 0) {
     lines.push(`  argTypes: {`)
-    for (const [variantName, options] of Object.entries(manifest.variants)) {
+    for (const [variantName, variantOptions] of Object.entries(
+      manifest.variants
+    )) {
       lines.push(`    ${variantName}: {`)
       lines.push(`      control: 'select',`)
-      lines.push(`      options: [${options.map(o => `'${o}'`).join(', ')}]`)
+      lines.push(
+        `      options: [${variantOptions.map(o => `'${o}'`).join(', ')}]`
+      )
       lines.push(`    },`)
     }
     lines.push(`  }`)
@@ -85,8 +89,10 @@ export function generateStory(
   lines.push(`}`)
 
   // Generate one story per variant option
-  for (const [variantName, options] of Object.entries(manifest.variants)) {
-    for (const option of options) {
+  for (const [variantName, variantOptions] of Object.entries(
+    manifest.variants
+  )) {
+    for (const option of variantOptions) {
       if (option === manifest.defaultVariants[variantName]) {
         continue // Skip default — already covered by Default story
       }

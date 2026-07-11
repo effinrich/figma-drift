@@ -1,6 +1,17 @@
 import { describe, it, expect } from 'vitest'
-import { tailwindToPx, pxToTailwind } from '../value-mapping'
+import path from 'path'
+import {
+  tailwindToPx,
+  pxToTailwind,
+  parseCssLength,
+  parseArbitraryUtility,
+  resolveTailwindTheme,
+  buildScaleMaps,
+  resolveSpacingRadiusMaps
+} from '../value-mapping'
 import { SPACING_MAP, RADIUS_MAP } from '../constants'
+
+const fixture = (p: string) => path.resolve(__dirname, 'fixtures', p)
 
 describe('value-mapping', () => {
   describe('tailwindToPx', () => {
@@ -114,6 +125,117 @@ describe('value-mapping', () => {
         expect(roundTripped).toBeDefined()
         expect(SPACING_MAP[roundTripped!]).toBe(px)
       }
+    })
+  })
+
+  describe('parseCssLength', () => {
+    it('parses px, rem, and em units', () => {
+      expect(parseCssLength('13px')).toBe(13)
+      expect(parseCssLength('1.5rem')).toBe(24)
+      expect(parseCssLength('2em')).toBe(32)
+    })
+
+    it('honors a custom root font size', () => {
+      expect(parseCssLength('1rem', { rootFontSizePx: 10 })).toBe(10)
+    })
+
+    it('treats unitless zero as 0 and rejects other unitless numbers', () => {
+      expect(parseCssLength('0')).toBe(0)
+      expect(parseCssLength('12')).toBeUndefined()
+    })
+
+    it('resolves var() references against a token map', () => {
+      expect(
+        parseCssLength('var(--spacing-md)', {
+          tokenMap: { '--spacing-md': '8px' }
+        })
+      ).toBe(8)
+      // token map key without leading --
+      expect(parseCssLength('var(--gap)', { tokenMap: { gap: '1rem' } })).toBe(
+        16
+      )
+    })
+
+    it('falls back to the var() default when the token is unknown', () => {
+      expect(parseCssLength('var(--nope, 5px)')).toBe(5)
+    })
+
+    it('returns undefined for non-length strings', () => {
+      expect(parseCssLength('auto')).toBeUndefined()
+      expect(parseCssLength('')).toBeUndefined()
+    })
+  })
+
+  describe('arbitrary-value parsing', () => {
+    it('parses arbitrary spacing/radius utilities directly', () => {
+      expect(parseArbitraryUtility('p-[13px]')).toBe(13)
+      expect(parseArbitraryUtility('gap-[1.5rem]')).toBe(24)
+      expect(parseArbitraryUtility('rounded-[6px]')).toBe(6)
+    })
+
+    it('is reachable through tailwindToPx without a map entry', () => {
+      expect(tailwindToPx('p-[13px]')).toBe(13)
+      expect(tailwindToPx('rounded-[6px]')).toBe(6)
+      expect(tailwindToPx('gap-[0.5rem]')).toBe(8)
+    })
+
+    it('returns undefined for non-length arbitrary values', () => {
+      expect(parseArbitraryUtility('bg-[#fff]')).toBeUndefined()
+      expect(parseArbitraryUtility('p-4')).toBeUndefined()
+    })
+  })
+
+  describe('non-Tailwind raw CSS lengths', () => {
+    it('resolves raw length strings and var() tokens through tailwindToPx', () => {
+      expect(tailwindToPx('13px')).toBe(13)
+      expect(tailwindToPx('1rem')).toBe(16)
+      expect(
+        tailwindToPx('var(--radius-md)', {
+          tokenMap: { '--radius-md': '10px' }
+        })
+      ).toBe(10)
+    })
+  })
+
+  describe('custom tailwind.config resolution', () => {
+    it('resolves spacing/radius scales from a project config', () => {
+      const theme = resolveTailwindTheme(fixture('tw-project'))
+      expect(theme).not.toBeNull()
+      expect(theme!.spacing['13']).toBe('13px')
+      expect(theme!.borderRadius.card).toBe('6px')
+    })
+
+    it('returns null when no config exists', () => {
+      expect(resolveTailwindTheme(fixture('.'))).toBeNull()
+    })
+
+    it('expands and merges config scales over the defaults', () => {
+      const theme = resolveTailwindTheme(fixture('tw-project'))!
+      const { spacingMap, radiusMap } = buildScaleMaps(theme)
+      // custom scale keys expanded across spacing prefixes
+      expect(spacingMap['p-13']).toBe(13)
+      expect(spacingMap['gap-huge']).toBe(64)
+      expect(radiusMap['rounded-card']).toBe(6)
+      expect(radiusMap['rounded-pill']).toBe(24)
+      // defaults still present (merge)
+      expect(spacingMap['p-4']).toBe(16)
+      expect(radiusMap['rounded-lg']).toBe(10)
+    })
+
+    it('looks up a custom class via tailwindToPx with resolved maps', () => {
+      const { spacingMap, radiusMap } = resolveSpacingRadiusMaps({
+        projectDir: fixture('tw-project')
+      })
+      expect(tailwindToPx('p-13', { spacingMap, radiusMap })).toBe(13)
+      expect(tailwindToPx('rounded-card', { spacingMap, radiusMap })).toBe(6)
+    })
+
+    it('falls back to default maps when no project config is found', () => {
+      const { spacingMap, radiusMap } = resolveSpacingRadiusMaps({
+        projectDir: fixture('.')
+      })
+      expect(spacingMap).toEqual(SPACING_MAP)
+      expect(radiusMap).toEqual(RADIUS_MAP)
     })
   })
 })

@@ -4,7 +4,13 @@
 import { readFileSync, writeFileSync } from 'node:fs'
 import type { DesignToken, TokenDrift } from './types'
 import type { IFigmaMCPAdapter } from './adapters/figma-mcp'
-import { parseOKLCH, figmaRGBToHex, colorsMatch } from './color-utils'
+import {
+  parseColor,
+  figmaRGBToHex,
+  colorsMatch,
+  isColorValue
+} from './color-utils'
+import { flattenThemeColors, type FlattenThemeOptions } from './token-sources'
 
 /**
  * Extract all CSS custom property definitions from a CSS file.
@@ -34,8 +40,8 @@ export function extractCSSTokensFromString(content: string): DesignToken[] {
     const lightValue = lightTokens[name] ?? ''
     const darkValue = darkTokens[name] ?? lightValue // fallback to light if no dark
 
-    const lightHex = lightValue ? parseOKLCH(lightValue) : '#000000'
-    const darkHex = darkValue ? parseOKLCH(darkValue) : '#000000'
+    const lightHex = lightValue ? parseColor(lightValue) : '#000000'
+    const darkHex = darkValue ? parseColor(darkValue) : '#000000'
 
     tokens.push({
       name,
@@ -48,6 +54,33 @@ export function extractCSSTokensFromString(content: string): DesignToken[] {
   }
 
   return tokens
+}
+
+/**
+ * Extract color tokens from a plain JS/TS/JSON theme object (styled-system,
+ * theme-ui, MUI `theme.palette`, or a bare `{ colors: {…} }` map).
+ *
+ * Nested keys are flattened into the same token name → value structure used
+ * for CSS tokens, so the result can be compared with Figma tokens directly.
+ * Since theme objects carry a single value per token, light and dark values
+ * are identical unless the source distinguishes them.
+ */
+export function extractThemeObjectTokens(
+  theme: unknown,
+  options?: FlattenThemeOptions
+): DesignToken[] {
+  const flat = flattenThemeColors(theme, options)
+  return Object.entries(flat).map(([name, value]) => {
+    const hex = parseColor(value)
+    return {
+      name,
+      lightValue: value,
+      darkValue: value,
+      lightHex: hex,
+      darkHex: hex,
+      source: 'css'
+    }
+  })
 }
 
 /**
@@ -217,12 +250,9 @@ function parseBlock(content: string, selector: string): Record<string, string> {
       const name = propMatch[1]
       const value = propMatch[2].trim()
 
-      // Only include OKLCH values and simple values (skip calc/var references)
-      if (
-        value.startsWith('oklch(') ||
-        value.startsWith('#') ||
-        /^\d/.test(value)
-      ) {
+      // Include any parseable CSS color (OKLCH, HSL, RGB/RGBA, hex, named).
+      // Non-color custom properties (e.g. --radius: 0.625rem) are skipped.
+      if (isColorValue(value)) {
         tokens[name] = value
       }
     }
@@ -243,12 +273,7 @@ function normalizeColorValue(value: string): string {
     return value.toLowerCase()
   }
 
-  // OKLCH string
-  if (value.startsWith('oklch(')) {
-    return parseOKLCH(value)
-  }
-
-  // Try to parse as JSON RGB object
+  // Try to parse as JSON RGB object (Figma float form)
   try {
     const obj = JSON.parse(value)
     if (typeof obj === 'object' && 'r' in obj && 'g' in obj && 'b' in obj) {
@@ -256,6 +281,11 @@ function normalizeColorValue(value: string): string {
     }
   } catch {
     // Not JSON
+  }
+
+  // Any CSS color string (OKLCH, HSL, RGB/RGBA, named, …)
+  if (isColorValue(value)) {
+    return parseColor(value)
   }
 
   return '#000000'

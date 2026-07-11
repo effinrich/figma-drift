@@ -51,3 +51,30 @@ export const RADIUS_MAP: Record<string, number> = {
  */
 export const TOKEN_PATTERN =
   /(?:bg|text|border|ring|fill|stroke)-(\w[\w-]*(?:\/\d+)?)/g
+
+/**
+ * Default px-per-rem/em used when resolving CSS length units without an
+ * explicit root font size. Matches the browser default of 16px.
+ */
+export const DEFAULT_ROOT_FONT_SIZE_PX = 16
+
+/**
+ * Tailwind utility prefixes that consume the spacing scale. Used when
+ * expanding a resolved `theme.spacing` scale (from a project tailwind.config)
+ * into concrete class → px entries.
+ */
+export const SPACING_UTILITY_PREFIXES = [
+  'gap',
+  'gap-x',
+  'gap-y',
+  'p',
+  'px',
+  'py',
+  'pt',
+  'pr',
+  'pb',
+  'pl',
+  'm',
+  'mx',
+  'my'
+]

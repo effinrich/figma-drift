@@ -40,6 +40,22 @@ export type { SyncDirection, PipelineOptions, PipelineResult } from './engine'
 
 // Manifest Extractor
 export { extractManifest } from './manifest-extractor'
+export type { ExtractManifestOptions } from './manifest-extractor'
+
+// Variant Extraction Adapters
+export {
+  extractVariants,
+  DEFAULT_VARIANT_EXTRACTORS,
+  CvaVariantExtractor,
+  TailwindVariantsExtractor,
+  EmotionExtractor,
+  StyledComponentsPropsExtractor,
+  CssModulesExtractor
+} from './variant-extractors'
+export type {
+  VariantExtractor,
+  VariantExtractionResult
+} from './variant-extractors'
 
 // Snapshot Extractor
 export { extractSnapshot } from './snapshot-extractor'
@@ -57,11 +73,21 @@ export { syncFigmaToCode } from './figma-to-code'
 export {
   extractCSSTokens,
   extractCSSTokensFromString,
+  extractThemeObjectTokens,
   extractFigmaTokens,
   compareTokens,
   syncTokenToFigma,
   syncTokenToCSS
 } from './token-syncer'
+
+// Color Token Sources
+export {
+  extractTokenReferencesFromClasses,
+  flattenThemeColors,
+  TailwindClassTokenSource,
+  ThemeObjectTokenSource
+} from './token-sources'
+export type { ColorTokenSource, FlattenThemeOptions } from './token-sources'
 
 // Story Generator
 export { generateStory, mergeStories } from './story-generator'
@@ -91,10 +117,30 @@ export {
 export type { LogType, LogEntry } from './sync-logger'
 
 // Color Utilities
-export { parseOKLCH, figmaRGBToHex, colorsMatch } from './color-utils'
+export {
+  parseColor,
+  parseOKLCH,
+  isColorValue,
+  figmaRGBToHex,
+  colorsMatch
+} from './color-utils'
 
 // Value Mapping
-export { tailwindToPx, pxToTailwind } from './value-mapping'
+export {
+  tailwindToPx,
+  pxToTailwind,
+  parseCssLength,
+  parseArbitraryUtility,
+  resolveTailwindTheme,
+  buildScaleMaps,
+  resolveSpacingRadiusMaps
+} from './value-mapping'
+export type {
+  LengthResolveOptions,
+  TailwindToPxOptions,
+  ThemeScale,
+  ResolvedTheme
+} from './value-mapping'
 
 // Configuration
 export { loadConfig, resolveFileKey, extractFileKeyFromURL } from './config'

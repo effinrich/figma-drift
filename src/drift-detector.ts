@@ -392,7 +392,7 @@ function compareRadius(
   }
 
   const figmaRadius = Array.isArray(snapshot.cornerRadius)
-    ? snapshot.cornerRadius[0] ?? 0
+    ? (snapshot.cornerRadius[0] ?? 0)
     : snapshot.cornerRadius
 
   if (codeRadius !== figmaRadius) {
