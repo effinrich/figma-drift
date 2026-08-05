@@ -1,0 +1,22 @@
+name: Close stale PRs and branches
+on:
+  schedule:
+    - cron: "0 6 * * 1-5"
+  workflow_dispatch:
+permissions:
+  pull-requests: write
+  issues: write
+  contents: write
+jobs:
+  stale:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/stale@v9
+        with:
+          days-before-pr-stale: 14
+          days-before-pr-close: 3
+          stale-pr-message: "Idle >14 days — marking stale; closes in 3 days per repo policy (COMMIT-PR-RULES)."
+          close-pr-message: "Closed as stale (idle >14 days). Reopen if still needed."
+          delete-branch: true
+          exempt-pr-labels: "keep,security,pinned,work-in-progress"
+          days-before-issue-stale: -1
